@@ -1,0 +1,8 @@
+# Intellij based IDEs
+.idea
+
+# Credentials
+credentials.json
+
+# Output from scraper
+output
