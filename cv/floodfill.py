@@ -21,6 +21,8 @@ import numpy as np
 import cv2
 from time import sleep
 
+# hierarchy structure:
+# http://docs.opencv.org/3.1.0/d9/d8b/tutorial_py_contours_hierarchy.html
 CV_CONTOUR_PARENT = 2
 
 def make_blank_img(h, w):
@@ -35,7 +37,16 @@ def img_normalize_dimensions(img, width=-1, height=-1):
 
 def grab_rgb(image, rect):
     x, y, r_width, r_height = rect
-    return img[x:r_width, y:r_height]
+    return img[y:y+r_height, x:x+r_width]
+
+def transform_rect(rect, scale_hw):
+    height_scale, width_scale = scale_hw
+    x, y, r_width, r_height = rect
+    x = round(x * width_scale)
+    y = round(y * height_scale)
+    r_width = round(r_width * width_scale)
+    r_height = round(r_height * height_scale)
+    return (x, y, r_width, r_height)
 
 class MemeDecomposer:
 
@@ -45,9 +56,11 @@ class MemeDecomposer:
         self.DEFAULT_MASK = np.zeros((scaled_h+2, scaled_w+2), np.uint8)
         self.img_h = img_h
         self.img_w = img_w
+        self.flood_scale_factor_hw = (img_h / scaled_h, img_w / scaled_w)
 
 
-    # via morphology
+    # via morphology blog post
+    # http://www.danvk.org/2015/01/07/finding-blocks-of-text-in-an-image-using-python-opencv-and-numpy.html
     def dilate(self, ary, N, iterations):
         """Dilate using an NxN '+' sign shape. ary is np.uint8."""
         kernel = np.zeros((N,N), dtype=np.uint8)
@@ -99,13 +112,18 @@ class MemeDecomposer:
         return contours, rectangle_contours, flood_region
 
     def extract_image_regions(self, flooded_image, rectangle_contours):
-        blank = make_blank_img(self.img_h, self.img_w)
+        imgs_extracted = []
         for cnt in rectangle_contours:
-            rect = cv2.boundingRect(cnt)
-            x, y, r_width, r_height = rect
-            cv2.rectangle(blank, (x,y),(x+r_width,y+r_height),(0,0,255),2)
+            normed_rect = cv2.boundingRect(cnt)
+            full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw)
+            x, y, w, h = full_rect
+            blank = make_blank_img(h, w)
+            blank[:] = grab_rgb(self.img_raw, full_rect)
+            imgs_extracted.append((full_rect, blank))
 
-        # cv2.imshow('new_regions', grab_rgb(self.img_raw, rect))
+        print(len(imgs_extracted))
+        for rect, buff in imgs_extracted:
+            cv2.imshow(str(rect), buff)
 
 if __name__ == '__main__':
     import sys
