@@ -14,6 +14,7 @@ angular.module('viewMemes').component('viewMemes', {
             .then(function (arr) {
                 for (var i = 0; i < arr.length; i++) {
                     var meme = arr[i];
+                    console.log(meme);
                     drawMeme(meme);
                 }
             })
@@ -57,9 +58,23 @@ angular.module('viewMemes').component('viewMemes', {
             button.className = "btn btn-info";
             button.innerHTML = "Download .meme file";
             button.addEventListener("click", function () {
-                console.log("CLICK");
+                console.log("LOGGING");
                 self.toJSON = '';
                 self.toJSON = angular.toJson(meme);
+
+                console.log(self.toJSON);
+                delete self.toJSON["$id"];
+                delete self.toJSON["$priority"];
+                console.log("HERE");
+                console.log(self.toJSON);
+                // console.log(self.toJSON.objects);
+                // if (self.toJSON["objects"] !== null) {
+                //     for (var o = 0; o < self.toJSON["objects"].length; o++) {
+                //         delete self["objects"][o].toJSON[$id];
+                //         delete self["objects"][o].toJSON[$priority];
+                //     }
+                // }
+
                 var blob = new Blob([self.toJSON], {type: "application/json;charset=utf-8;"});
                 var downloadLink = angular.element('<a></a>');
                 downloadLink.attr('href', window.URL.createObjectURL(blob));
@@ -81,10 +96,10 @@ angular.module('viewMemes').component('viewMemes', {
                     ctx.drawImage(img, element.x, element.y, element.width, element.height);
                 };
             } else if (element.type === "text") {
-                element.height *= 0.4;
-                ctx.font = "" + element.height + "px Arial";
+                var correctedHeight = element.height * 0.4;
+                ctx.font = "" + correctedHeight + "px Arial";
                 ctx.fillStyle = 'black';
-                ctx.fillText(element.data, element.x, element.y + element.height, element.width);
+                ctx.fillText(element.data, element.x, element.y + correctedHeight, element.width);
             }
         };
     }]
