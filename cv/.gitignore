@@ -1,2 +1,5 @@
 # intellij based IDEs
 .idea
+
+# generated image components
+generated_img_components
