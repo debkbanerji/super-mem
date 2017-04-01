@@ -20,10 +20,17 @@ from __future__ import print_function
 import numpy as np
 import cv2
 from time import sleep
+import os
 
 # hierarchy structure:
 # http://docs.opencv.org/3.1.0/d9/d8b/tutorial_py_contours_hierarchy.html
 CV_CONTOUR_PARENT = 2
+IMAGE_SUBCOMPONENT_THRESHOLD = 30 * 30 # if less than some value of pixels (in the normed img), throw it out
+
+def ensure_dir(file_path):
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def make_blank_img(h, w):
     return np.zeros((h, w, 3), np.uint8)
@@ -35,6 +42,7 @@ def img_normalize_dimensions(img, width=-1, height=-1):
     new_dims = get_normalized_dimensions(width, height)
     return cv2.resize(img, new_dims), new_dims
 
+# based on http://stackoverflow.com/a/26445324
 def grab_rgb(image, rect):
     x, y, r_width, r_height = rect
     return img[y:y+r_height, x:x+r_width]
@@ -115,15 +123,16 @@ class MemeDecomposer:
         imgs_extracted = []
         for cnt in rectangle_contours:
             normed_rect = cv2.boundingRect(cnt)
-            full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw)
-            x, y, w, h = full_rect
-            blank = make_blank_img(h, w)
-            blank[:] = grab_rgb(self.img_raw, full_rect)
-            imgs_extracted.append((full_rect, blank))
+            normed_w, normed_h = normed_rect
+            if normed_w * normed_h < IMAGE_SUBCOMPONENT_THRESHOLD: continue
+            else:
+                full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw)
+                x, y, w, h = full_rect
+                blank = make_blank_img(h, w)
+                blank[:] = grab_rgb(self.img_raw, full_rect)
+                imgs_extracted.append((blank, full_rect))
 
-        print(len(imgs_extracted))
-        for rect, buff in imgs_extracted:
-            cv2.imshow(str(rect), buff)
+        return imgs_extracted
 
 if __name__ == '__main__':
     import sys
@@ -160,7 +169,17 @@ if __name__ == '__main__':
                                 flood_data=(lo, hi, flags),
                                 canny_threshold_lo_hi=(thrs1, thrs2),
                                 n_dilation_iter=dilation_iterations)
-        meme_decomposer.extract_image_regions(flooded_img, rect_regions)
+        imgs = meme_decomposer.extract_image_regions(flooded_img, rect_regions)
+
+        seq = iter(range(len(imgs)))
+        for img_data, pose in imgs:
+            # TODO right now it's setting each image as 0.webp, 1.webp and so on. These should be uploaded to firebase
+            ensure_dir('generated_img_components/')
+            cv2.imwrite('generated_img_components/' + str(next(seq)) + '.webp', img_data, [cv2.IMWRITE_WEBP_QUALITY, 20])
+
+            # TODO write the pose data to json
+            x, y, w, h = pose
+
 
 
 
