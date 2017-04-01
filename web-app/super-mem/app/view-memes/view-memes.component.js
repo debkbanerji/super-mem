@@ -28,8 +28,8 @@ angular.module('viewMemes').component('viewMemes', {
             // memeContainer.className = "col-lg-2 col-md-4 col-sm-6 col-xs-6";
             var panel = document.createElement("div");
             panel.className = "container-fluid panel";
-            var subPanel = document.createElement("div");
-            subPanel.style = "margin-top: 10px; margin-bottom: 10px;";
+            var superpanel = document.createElement("div");
+            superpanel.style = "margin-top: 10px; margin-bottom: 10px;";
             var canvas = document.createElement("canvas");
             canvas.style = "border:1px solid #000000;";
 
@@ -51,10 +51,25 @@ angular.module('viewMemes').component('viewMemes', {
 
             // canvas.style += " width: 300px;";
             // canvas.style += " height: 300px;";
-            subPanel.appendChild(canvas);
-            panel.appendChild(subPanel);
-            memeContainer.appendChild(panel);
+            superpanel.appendChild(canvas);
 
+            var button = document.createElement("a");
+            button.className = "btn btn-info";
+            button.innerHTML = "Download .meme file";
+            button.addEventListener("click", function () {
+                console.log("CLICK");
+                self.toJSON = '';
+                self.toJSON = angular.toJson(meme);
+                var blob = new Blob([self.toJSON], {type: "application/json;charset=utf-8;"});
+                var downloadLink = angular.element('<a></a>');
+                downloadLink.attr('href', window.URL.createObjectURL(blob));
+                downloadLink.attr('download', 'my_meme.meme');
+                downloadLink[0].click();
+            });
+
+            panel.appendChild(superpanel);
+            panel.appendChild(button);
+            memeContainer.appendChild(panel);
             self.memeView.appendChild(memeContainer)
         };
         var drawElement = function (ctx, element) {
@@ -71,6 +86,6 @@ angular.module('viewMemes').component('viewMemes', {
                 ctx.fillStyle = 'black';
                 ctx.fillText(element.data, element.x, element.y + element.height, element.width);
             }
-        }
+        };
     }]
 });
