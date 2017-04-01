@@ -20,6 +20,18 @@ from __future__ import print_function
 import numpy as np
 import cv2
 
+# via morphology
+def dilate(ary, N, iterations):
+    """Dilate using an NxN '+' sign shape. ary is np.uint8."""
+    kernel = np.zeros((N,N), dtype=np.uint8)
+    kernel[(N-1)//2,:] = 1
+    dilated_image = cv2.dilate(ary // 255, kernel, iterations=iterations)
+
+    kernel = np.zeros((N,N), dtype=np.uint8)
+    kernel[:,(N-1)//2] = 1
+    dilated_image = cv2.dilate(dilated_image, kernel, iterations=iterations)
+    return dilated_image
+
 if __name__ == '__main__':
     import sys
     fn = sys.argv[1]
@@ -54,10 +66,10 @@ if __name__ == '__main__':
         cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
         flood_region = img - flooded
         edge = cv2.Canny(flood_region, thrs1, thrs2, apertureSize=5)
-        im2, contours, hierarchy = cv2.findContours(edge, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        dilated_img = dilate(edge, N=3, iterations=5)
+        im2, contours, hierarchy = cv2.findContours(dilated_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cv2.imshow('floodfill', flooded)
-        buff = np.zeros((h, w), np.uint32)
-        copy_flooded = image = np.zeros((h, w, 3), np.uint8)
+        copy_flooded = np.zeros((h, w, 3), np.uint8)
         cv2.drawContours(copy_flooded, contours, -1, (0,255,0), 3)
         for cnt in contours:
             x,y,r_width,r_height = cv2.boundingRect(cnt)
