@@ -1,8 +1,11 @@
 # Intellij based IDEs
 .idea
 
-# Credentials
+# Reddit Credentials
 credentials.json
+
+# Firebase Credentials
+firebase-config.json
 
 # Output from scraper
 output
