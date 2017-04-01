@@ -11,15 +11,11 @@ angular.module('uploadMemes').component('uploadMemes', {
         self.errorText = document.getElementById("errorText");
         $scope.fileNameChanged = function (ele) {
             self.memeFile = ele.files[0];
-            console.log(self.memeFile);
             self.errorText = self.memeFile.name;
             var reader = new FileReader();
             reader.onload = function(progressEvent){
                 var rawMemeData = this.result;
-                console.log(self.rawMemeData);
                 rawMemeData = rawMemeData.replace(/,"$id":"(\\"|[^"])*","$priority":"(\\"[^"])*"/, '');
-                console.log("RAW");
-                console.log(rawMemeData);
                 self.meme = JSON.parse(rawMemeData);
                 drawMeme(self.meme);
             };
@@ -68,11 +64,9 @@ angular.module('uploadMemes').component('uploadMemes', {
             button.className = "btn btn-info";
             button.innerHTML = "Upload meme to database";
             button.addEventListener("click", function () {
-                console.log(meme);
                 sanitizedMeme = meme;
                 delete sanitizedMeme.$id;
                 delete sanitizedMeme.$priority;
-                console.log(sanitizedMeme);
                 self.memesRef.push(meme);
                 $route.reload();
             });
@@ -91,10 +85,10 @@ angular.module('uploadMemes').component('uploadMemes', {
                     ctx.drawImage(img, element.x, element.y, element.width, element.height);
                 };
             } else if (element.type === "text") {
-                element.height *= 0.4;
-                ctx.font = "" + element.height + "px Arial";
+                var correctedHeight = element.height * 0.4;
+                ctx.font = "" + correctedHeight + "px Arial";
                 ctx.fillStyle = 'black';
-                ctx.fillText(element.data, element.x, element.y + element.height, element.width);
+                ctx.fillText(element.data, element.x, element.y + correctedHeight, element.width);
             }
         };
     }]

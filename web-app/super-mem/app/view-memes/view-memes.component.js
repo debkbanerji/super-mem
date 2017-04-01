@@ -9,12 +9,10 @@ angular.module('viewMemes').component('viewMemes', {
         self.memesArray = $firebaseArray(self.memesRef);
 
         self.memeView = document.getElementById("meme-repeat");
-        // console.log(self.memeView);
         self.memesArray.$loaded()
             .then(function (arr) {
                 for (var i = 0; i < arr.length; i++) {
                     var meme = arr[i];
-                    console.log(meme);
                     drawMeme(meme);
                 }
             })
@@ -58,27 +56,12 @@ angular.module('viewMemes').component('viewMemes', {
             button.className = "btn btn-info";
             button.innerHTML = "Download .meme file";
             button.addEventListener("click", function () {
-                console.log("LOGGING");
                 self.toJSON = '';
                 self.toJSON = angular.toJson(meme);
-
-                console.log(self.toJSON);
-                delete self.toJSON["$id"];
-                delete self.toJSON["$priority"];
-                console.log("HERE");
-                console.log(self.toJSON);
-                // console.log(self.toJSON.objects);
-                // if (self.toJSON["objects"] !== null) {
-                //     for (var o = 0; o < self.toJSON["objects"].length; o++) {
-                //         delete self["objects"][o].toJSON[$id];
-                //         delete self["objects"][o].toJSON[$priority];
-                //     }
-                // }
-
                 var blob = new Blob([self.toJSON], {type: "application/json;charset=utf-8;"});
                 var downloadLink = angular.element('<a></a>');
                 downloadLink.attr('href', window.URL.createObjectURL(blob));
-                downloadLink.attr('download', 'my_meme.meme');
+                downloadLink.attr('download', meme.$id + '.meme');
                 downloadLink[0].click();
             });
 
