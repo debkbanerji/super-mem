@@ -20,14 +20,29 @@ from __future__ import print_function
 import numpy as np
 import cv2
 from time import sleep
+
+CV_CONTOUR_PARENT = 2
+
 def make_blank_img(h, w):
     return np.zeros((h, w, 3), np.uint8)
+
+def get_normalized_dimensions(width, height):
+    return 250, int(250/width * height)
+
+def img_normalize_dimensions(img, width=-1, height=-1):
+    new_dims = get_normalized_dimensions(width, height)
+    return cv2.resize(img, new_dims), new_dims
+
+def grab_rgb(image, rect):
+    x, y, r_width, r_height = rect
+    return img[x:r_width, y:r_height]
 
 class MemeDecomposer:
 
     def __init__(self, img_raw, img_h, img_w):
         self.img_raw = img_raw
-        self.DEFAULT_MASK = np.zeros((img_h+2, img_w+2), np.uint8)
+        scaled_w, scaled_h = get_normalized_dimensions(img_w, img_h)
+        self.DEFAULT_MASK = np.zeros((scaled_h+2, scaled_w+2), np.uint8)
         self.img_h = img_h
         self.img_w = img_w
 
@@ -44,35 +59,53 @@ class MemeDecomposer:
         dilated_image = cv2.dilate(dilated_image, kernel, iterations=iterations)
         return dilated_image
 
+
     def flood_find_regions(self, seed_pt, draw=False, mask=None, flood_data=(-1, -1, 0), canny_threshold_lo_hi=(-1, -1), n_dilation_iter=1):
         mask = mask or self.DEFAULT_MASK
         flood_lo, flood_hi, flood_flags = flood_data
         canny_threshold_lo, canny_threshold_hi = canny_threshold_lo_hi
-
-        flooded = cv2.medianBlur(self.img_raw.copy(), 3)
+        working_img, scaled_dims = img_normalize_dimensions(self.img_raw.copy(), width=self.img_w, height=self.img_h)
+        working_img = cv2.bilateralFilter(working_img, 11, 17, 25)
+        flooded = working_img.copy()
         mask[:] = 0
         cv2.floodFill(flooded, mask, seed_pt, (0, 255, 0), (flood_lo,)*3, (flood_hi,)*3, flood_flags)
         cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
-        flood_region = self.img_raw - flooded # todo use a better strategy here. thresholding?
+        flood_region = working_img - flooded # todo use a better strategy here. thresholding?
         edges = cv2.Canny(flood_region, canny_threshold_lo, canny_threshold_hi, apertureSize=5)
         dilated_img = self.dilate(edges, N=3, iterations=n_dilation_iter)
         im2, contours, hierarchy = cv2.findContours(dilated_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour_drawing = make_blank_img(h, w)
-        rectangle_regions = map(cv2.boundingRect, contours)
+        rectangle_contours = []
+        leftovers = []
+        for cnt, contour_meta in zip(contours, hierarchy[0]):
+            epsilon = 0.1*cv2.arcLength(cnt,True)
+            approx = cv2.approxPolyDP(cnt,epsilon,True)
+            if len(approx) == 4:
+                if contour_meta[CV_CONTOUR_PARENT] != -1:
+                    print('dropping contour because it is not innermost.')
+                    # leftovers.append(cnt)
+                else:
+                    rectangle_contours.append(approx)
+            else:
+                leftovers.append(cnt)
+
+
         if draw:
-            cv2.drawContours(contour_drawing, contours, -1, (0,255,0), 3)
+            cv2.drawContours(contour_drawing, rectangle_contours, -1, (0,255,0), 3)
+            cv2.drawContours(contour_drawing, leftovers, -1, (255,255,0), 3)
             cv2.imshow('floodfill', flooded)
             cv2.imshow('edge', contour_drawing)
 
-        return contours, rectangle_regions, flood_region
+        return contours, rectangle_contours, flood_region
 
-    def extract_image_regions(self, flooded_image, rectangle_regions):
+    def extract_image_regions(self, flooded_image, rectangle_contours):
         blank = make_blank_img(self.img_h, self.img_w)
-        for rect in rectangle_regions:
+        for cnt in rectangle_contours:
+            rect = cv2.boundingRect(cnt)
             x, y, r_width, r_height = rect
             cv2.rectangle(blank, (x,y),(x+r_width,y+r_height),(0,0,255),2)
 
-        cv2.imshow('new_regions', blank)
+        # cv2.imshow('new_regions', grab_rgb(self.img_raw, rect))
 
 if __name__ == '__main__':
     import sys
@@ -122,8 +155,8 @@ if __name__ == '__main__':
 
     update()
     cv2.setMouseCallback('floodfill', onmouse)
-    cv2.createTrackbar('lo', 'floodfill', 20, 255, update)
-    cv2.createTrackbar('hi', 'floodfill', 20, 255, update)
+    cv2.createTrackbar('lo', 'floodfill', 30, 255, update)
+    cv2.createTrackbar('hi', 'floodfill', 50, 255, update)
     cv2.createTrackbar('thrs1', 'edge', 2000, 5000, update)
     cv2.createTrackbar('thrs2', 'edge', 4000, 5000, update)
     cv2.createTrackbar('dilation_iterations', 'edge', 3, 10, update)
