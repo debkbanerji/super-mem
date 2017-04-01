@@ -123,8 +123,10 @@ class MemeDecomposer:
         imgs_extracted = []
         for cnt in rectangle_contours:
             normed_rect = cv2.boundingRect(cnt)
-            normed_w, normed_h = normed_rect
-            if normed_w * normed_h < IMAGE_SUBCOMPONENT_THRESHOLD: continue
+            _, _, normed_w, normed_h = normed_rect
+            if normed_w * normed_h < IMAGE_SUBCOMPONENT_THRESHOLD:
+                print("skipping contour with dimensions %s x %s" % (normed_w, normed_h))
+                continue
             else:
                 full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw)
                 x, y, w, h = full_rect
