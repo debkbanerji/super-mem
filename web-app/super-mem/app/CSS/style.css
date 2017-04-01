@@ -51,9 +51,62 @@ a, u {
 }
 
 .nav-bar-fade-on-hover-main:hover, .nav-bar-fade-on-hover-main:focus, .nav-bar-fade-on-hover-main:active {
-    background-color: #e4e4e4;
+    background-color: #fa3c74;
     color: white;
     text-decoration-color: white;
     cursor: pointer;
     cursor: hand;
+}
+
+.navbar-info {
+    background-color: #5262bc !important;
+}
+
+.btn {
+    background-color: #5262bc !important;
+    border: 1px solid #5262bc !important;
+    color: white !important;
+}
+
+.btn:hover {
+    background-color: white !important;
+    color: #5262bc !important;
+}
+
+a {
+    color: white !important;
+}
+
+a:hover {
+    color: #5262bc !important;
+}
+
+.navbar a:hover {
+    color: white !important;
+}
+
+.btn .btn-raised {
+    color: white !important;
+}
+
+.inputfile {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+}
+
+.inputfile + label {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: white;
+    background-color: black;
+    display: inline-block;
+}
+
+.inputfile:focus + label,
+.inputfile + label:hover {
+    background-color: red;
 }
