@@ -1,20 +1,9 @@
 <nav-bar></nav-bar>
 <div class="row">
-    <div class="col-xs-12">
-        <div class="container-fluid">
-            <div ng-repeat="meme in $ctrl.memesArray">
-                <div class="col-sm-6">
-                    <div class="container-fluid panel">
-                        <img src="{{meme.image}}">
-                        <h3>
-                            {{meme}}
-                        </h3>
-                        <div class="canvas_area">
-                            <canvas id="{{meme.$id}}"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!--<div class="col-xs-12">-->
+    <div class="container-fluid">
+        <div id="meme-repeat">
         </div>
+        <!--</div>-->
     </div>
 </div>
