@@ -26,8 +26,10 @@ import os
 # http://docs.opencv.org/3.1.0/d9/d8b/tutorial_py_contours_hierarchy.html
 CV_CONTOUR_PARENT = 2
 IMAGE_NORM_WIDTH = 500
+IMAGE_OCR_MIN_DIM = 25
 IMAGE_SUBCOMPONENT_THRESHOLD = 30 * 30 # if less than some value of pixels (in the normed img), throw it out
 COLOR_BLACK = (0,0,0)
+COLOR_GREEN = (0,255,0)
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
@@ -153,9 +155,17 @@ class MemeDecomposer:
         mask = dilate(mask, 3, 3, method=cv2.erode)
         edges = cv2.Canny(image, 30, 50, apertureSize=5)
         mask = cv2.bitwise_and(edges, edges, mask=mask)
-        mask = dilate(mask, 3, 5)
-        im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
+        mask = dilate(mask, 3, 3)
+        im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for cnt in contours:
+            x,y,r_width,r_height = cv2.boundingRect(cnt)
+            if min(r_width, r_height) >= IMAGE_OCR_MIN_DIM:
+                cv2.rectangle(image, (x, y), (x+r_width,y+r_height), COLOR_GREEN, 1)
+            else:
+                print("skipping potential text region with dimensions %s x %s" % (r_width, r_height))
+
+
+        # cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
         cv2.imshow('edge', image)
 
 if __name__ == '__main__':
