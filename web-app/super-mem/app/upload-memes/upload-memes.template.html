@@ -1,9 +1,12 @@
-
 <nav-bar></nav-bar>
 <div class="row">
     <div class="col-xs-12">
-        <div class="container-fluid">
-            <h2>TODO: Create module 'Upload Memes'</h2>
+        <div class="container-fluid" style="text-align:center">
+            <div class="panel">
+                <input class="inputfile" id="file" type="file"
+                       onchange="angular.element(this).scope().fileNameChanged(this)">
+                <label class="btn btn-info" for="file">Choose a file</label>
+            </div>
         </div>
     </div>
 </div>
