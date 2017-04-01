@@ -42,11 +42,19 @@ def upload_images_in_directory(dir_path):
 
 def upload_meme(path):
     location, fileName = os.path.split(path)
-    print("Uploading " + fileName, location)
+    print("Uploading " + path)
     splitFileName = fileName.split(".")
 
     to_push = fileName
 
+    f = open(path, 'r')
+    rawFileData = f.read()
+
+    json_data = json.loads(rawFileData)
+    json_data.pop('$id', None)
+    json_data.pop('$priority', None)
+
+    to_push = json_data
 
     # This Version Below Does Not Overwrite Duplicates
 
@@ -69,6 +77,6 @@ def upload_memes_in_directory(dir_path):
         extension_split = file.split(".")
         # if it's an image file
         if (extension_split[len(extension_split) - 1] == 'meme'):
-            upload_meme(file)
+            upload_meme(dir_path + "/" + file)
 
 upload_memes_in_directory(target_directory)

@@ -19,7 +19,6 @@ angular.module('uploadMemes').component('uploadMemes', {
                 rawMemeData = rawMemeData.replace(/,"$id":"(\\"|[^"])*","$priority":"(\\"[^"])*"/, '');
 
                 var splitString = self.memeFile.name.split(".");
-                console.log(splitString[splitString.length - 1]);
                 if (splitString[splitString.length - 1] !== "meme") {
                     self.errorText.innerHTML = "Please Choose a .meme File";
                     return;
