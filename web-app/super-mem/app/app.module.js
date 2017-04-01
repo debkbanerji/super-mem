@@ -1,0 +1,1 @@
+angular.module('superMemApp', ['ngRoute', 'ngAnimate', 'login', 'firebase', 'navBar', 'viewMemes', 'about', 'uploadMemes', 'developerMode']);
