@@ -9,20 +9,29 @@ angular.module('uploadMemes').component('uploadMemes', {
         self.rawMemeData = null;
         self.meme = null;
         self.errorText = document.getElementById("errorText");
+        // console.log(self.errorText);
         $scope.fileNameChanged = function (ele) {
             self.memeFile = ele.files[0];
-            self.errorText = self.memeFile.name;
+            // self.errorText = self.memeFile.name;
             var reader = new FileReader();
             reader.onload = function(progressEvent){
                 var rawMemeData = this.result;
                 rawMemeData = rawMemeData.replace(/,"$id":"(\\"|[^"])*","$priority":"(\\"[^"])*"/, '');
+
+                var splitString = self.memeFile.name.split(".");
+                console.log(splitString[splitString.length - 1]);
+                if (splitString[splitString.length - 1] !== "meme") {
+                    self.errorText.innerHTML = "Please Choose a .meme File";
+                    return;
+                }
+
                 self.meme = JSON.parse(rawMemeData);
+                var chooseFileControls = document.getElementById("choose-file-controls");
+                var mainView = document.getElementById("main-view");
+                mainView.removeChild(chooseFileControls);
                 drawMeme(self.meme);
             };
             reader.readAsText(self.memeFile);
-            var chooseFileControls = document.getElementById("choose-file-controls");
-            var mainView = document.getElementById("main-view");
-            mainView.removeChild(chooseFileControls);
         };
 
 
