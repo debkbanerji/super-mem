@@ -7,7 +7,7 @@
                     <h1>About .meme</h1>
                     <h4>.meme is a platform to demonstrate the power of an extremely efficient compression algorithm for
                         storing composite captioned images. Here you can view compressed images, or download a very
-                        lightweight implementation of a .meme file interpreter written in Javascript</h4>
+                        lightweight implementation of a .meme file interpreter written in JavaScript</h4>
                     <h4>Created by Alex Hirschberg, Deb Banerji and Ragavi Ramesh</h4>
                 </div>
             </div>
@@ -18,11 +18,15 @@
             <div class="panel">
                 <div style="padding: 10px">
                     <h1>Getting Started</h1>
-                    <h5>In order to use the interpreter, first, download either the regular or minified Javascript file
-                        and reference it on your page.</h5>
-                    <a target="_self" href="../JS/meme.js" download="meme.js" class="btn">Download Javascript</a>
+                    <p>In order to use the interpreter, first download either the regular or minified JavaScript file
+                        and reference it on your page.</p>
+                    <a target="_self" href="../JS/meme.js" download="meme.js" class="btn">Download JavaScript</a>
                     <a target="_self" href="../JS/meme.min.js" download="meme.min.js" class="btn">Download Minified
-                        Javacript</a>
+                        JavaScript</a>
+                    <p>After you've included the JavaScript file, simply call <b>drawMeme(canvas, meme)</b> in order to
+                        unpack the image and draw it on your page, where <b>canvas</b> is the HTML5 canvas element on
+                        which the image will be rendered and <b>meme</b> is the object corresponding to the .meme file
+                        containing the image.</p>
                 </div>
             </div>
         </div>

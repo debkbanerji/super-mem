@@ -1,7 +1,5 @@
 var drawMeme = function (canvas, meme) {
-    // Canvas Logic
     var ctx = canvas.getContext("2d");
-
     var keys = Object.keys(meme.objects);
     for (var j = 0; j < keys.length; j++) {
         var element = meme.objects[keys[j]];
