@@ -5,23 +5,22 @@ import praw
 import urllib.request
 
 subreddits = ["wholesomememes"]
-max_per_subreddit = 10
+max_per_subreddit = 4
 output_folder = "output"
 
 check_words = ['jpg']
 
 credFile = open('credentials.json', 'r+')
-# print(f)
 credentials = json.load(credFile)
 CLIENT_ID = credentials["client_id"]
 CLIENT_SECRET = credentials["client_secret"]
-# print(CLIENT_ID)
-# print(CLIENT_SECRET)
 
 reddit = praw.Reddit(client_id=CLIENT_ID,
                      client_secret=CLIENT_SECRET,
                      user_agent='test')
 
+if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
 def scrape_subreddit(subreddit):
     print("Scraping memes from r/" + subreddit)
@@ -42,5 +41,8 @@ def scrape_subreddit(subreddit):
 
 
 for subreddit in subreddits:
-    scrape_subreddit(subreddit)
+    try:
+        scrape_subreddit(subreddit)
+    except:
+        print("Error scraping r/" + subreddit)
     print("Done")
