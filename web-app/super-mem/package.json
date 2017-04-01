@@ -1,6 +1,5 @@
-
-        {
-        "name": "super-mem",
+{
+  "name": "super-mem",
   "version": "1.0.0",
   "description": "Efficient compression algorithm implementation for storing memes",
   "main": "server.js",
