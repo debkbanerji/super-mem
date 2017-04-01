@@ -28,7 +28,7 @@ angular.module('uploadMemes').component('uploadMemes', {
                 var chooseFileControls = document.getElementById("choose-file-controls");
                 var mainView = document.getElementById("main-view");
                 mainView.removeChild(chooseFileControls);
-                drawMeme(self.meme);
+                drawMemeOnPanel(self.meme);
             };
             reader.readAsText(self.memeFile);
         };
@@ -36,7 +36,7 @@ angular.module('uploadMemes').component('uploadMemes', {
 
 
         self.memeView = document.getElementById("meme-view");
-        var drawMeme = function (meme) {
+        var drawMemeOnPanel = function (meme) {
             var memeContainer = document.createElement("div");
             memeContainer.className = "col-xs-12";
             memeContainer.style = "text-align:center;";
@@ -54,15 +54,7 @@ angular.module('uploadMemes').component('uploadMemes', {
             canvas.width = width;
             canvas.height = height;
 
-            // Canvas Logic
-            var ctx = canvas.getContext("2d");
-
-            var keys = Object.keys(meme.objects);
-            for (var j = 0; j < keys.length; j++) {
-                var element = meme.objects[keys[j]];
-                drawElement(ctx, element);
-            }
-
+            drawMeme(canvas, meme);
 
             // canvas.style += " width: 300px;";
             // canvas.style += " height: 300px;";
@@ -83,21 +75,6 @@ angular.module('uploadMemes').component('uploadMemes', {
             panel.appendChild(button);
             memeContainer.appendChild(panel);
             self.memeView.appendChild(memeContainer)
-        };
-        var drawElement = function (ctx, element) {
-            if (element.type === "image") {
-                var imageURL = element.data;
-                var img = new Image();
-                img.src = imageURL;
-                img.onload = function (event) {
-                    ctx.drawImage(img, element.x, element.y, element.width, element.height);
-                };
-            } else if (element.type === "text") {
-                var correctedHeight = element.height * 0.4;
-                ctx.font = "" + correctedHeight + "px Arial";
-                ctx.fillStyle = 'black';
-                ctx.fillText(element.data, element.x, element.y + correctedHeight, element.width);
-            }
         };
     }]
 });
