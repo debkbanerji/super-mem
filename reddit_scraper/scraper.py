@@ -5,7 +5,7 @@ import praw
 import urllib.request
 
 subreddits = ["wholesomememes"]
-max_per_subreddit = 4
+max_per_subreddit = 3
 output_folder = "output"
 
 check_words = ['jpg']
