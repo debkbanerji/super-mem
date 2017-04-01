@@ -24,6 +24,7 @@ angular.module('viewMemes').component('viewMemes', {
         var drawMeme = function (meme) {
             var memeContainer = document.createElement("div");
             memeContainer.className = "col-xs-12";
+            memeContainer.style = "text-align:center;";
             // memeContainer.className = "col-lg-2 col-md-4 col-sm-6 col-xs-6";
             var panel = document.createElement("div");
             panel.className = "container-fluid panel";
@@ -65,6 +66,7 @@ angular.module('viewMemes').component('viewMemes', {
                     ctx.drawImage(img, element.x, element.y, element.width, element.height);
                 };
             } else if (element.type === "text") {
+                element.height *= 0.4;
                 ctx.font = "" + element.height + "px Arial";
                 ctx.fillStyle = 'black';
                 ctx.fillText(element.data, element.x, element.y + element.height, element.width);
