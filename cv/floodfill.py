@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 Floodfill sample.
@@ -19,10 +19,14 @@ from __future__ import print_function
 
 import numpy as np
 import cv2
+from time import sleep
+def make_blank_img(h, w):
+    return np.zeros((h, w, 3), np.uint8)
 
 class MemeDecomposer:
 
-    def __init__(self, img_h, img_w):
+    def __init__(self, img_raw, img_h, img_w):
+        self.img_raw = img_raw
         self.DEFAULT_MASK = np.zeros((img_h+2, img_w+2), np.uint8)
         self.img_h = img_h
         self.img_w = img_w
@@ -40,31 +44,35 @@ class MemeDecomposer:
         dilated_image = cv2.dilate(dilated_image, kernel, iterations=iterations)
         return dilated_image
 
-    def flood_find_regions(self, img, seed_pt, draw=False, mask=None, flood_data=(-1, -1, 0), canny_threshold_lo_hi=(-1, -1), n_dilation_iter=1):
+    def flood_find_regions(self, seed_pt, draw=False, mask=None, flood_data=(-1, -1, 0), canny_threshold_lo_hi=(-1, -1), n_dilation_iter=1):
         mask = mask or self.DEFAULT_MASK
         flood_lo, flood_hi, flood_flags = flood_data
         canny_threshold_lo, canny_threshold_hi = canny_threshold_lo_hi
 
-        flooded = img.copy()
+        flooded = cv2.medianBlur(self.img_raw.copy(), 3)
         mask[:] = 0
         cv2.floodFill(flooded, mask, seed_pt, (0, 255, 0), (flood_lo,)*3, (flood_hi,)*3, flood_flags)
         cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
-        flood_region = img - flooded # todo use a better strategy here. thresholding?
+        flood_region = self.img_raw - flooded # todo use a better strategy here. thresholding?
         edges = cv2.Canny(flood_region, canny_threshold_lo, canny_threshold_hi, apertureSize=5)
         dilated_img = self.dilate(edges, N=3, iterations=n_dilation_iter)
         im2, contours, hierarchy = cv2.findContours(dilated_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contour_drawing = np.zeros((h, w, 3), np.uint8)
-        cv2.drawContours(contour_drawing, contours, -1, (0,255,0), 3)
-        for cnt in contours:
-            x,y,r_width,r_height = cv2.boundingRect(cnt)
-            cv2.rectangle(contour_drawing, (x,y),(x+r_width,y+r_height),(0,0,255),2)
+        contour_drawing = make_blank_img(h, w)
+        rectangle_regions = map(cv2.boundingRect, contours)
         if draw:
+            cv2.drawContours(contour_drawing, contours, -1, (0,255,0), 3)
             cv2.imshow('floodfill', flooded)
             cv2.imshow('edge', contour_drawing)
 
-    def extract_image_regions(self, img, regions):
-        
-        pass
+        return contours, rectangle_regions, flood_region
+
+    def extract_image_regions(self, flooded_image, rectangle_regions):
+        blank = make_blank_img(self.img_h, self.img_w)
+        for rect in rectangle_regions:
+            x, y, r_width, r_height = rect
+            cv2.rectangle(blank, (x,y),(x+r_width,y+r_height),(0,0,255),2)
+
+        cv2.imshow('new_regions', blank)
 
 if __name__ == '__main__':
     import sys
@@ -79,9 +87,9 @@ if __name__ == '__main__':
 
     h, w = img.shape[:2]
     seed_pt = None
-    fixed_range = False
+    fixed_range = True
     connectivity = 4
-    meme_decomposer = MemeDecomposer(h, w)
+    meme_decomposer = MemeDecomposer(img, h, w)
 
     def update(dummy=None):
         if seed_pt is None:
@@ -95,7 +103,14 @@ if __name__ == '__main__':
         flags = connectivity
         if fixed_range:
             flags |= cv2.FLOODFILL_FIXED_RANGE
-        meme_decomposer.flood_find_regions(img, seed_pt, draw=True, flood_data=(lo,hi, flags), canny_threshold_lo_hi=(thrs1, thrs2), n_dilation_iter=dilation_iterations)
+
+        contours, rect_regions, flooded_img = meme_decomposer \
+            .flood_find_regions(seed_pt, draw=True,
+                                flood_data=(lo, hi, flags),
+                                canny_threshold_lo_hi=(thrs1, thrs2),
+                                n_dilation_iter=dilation_iterations)
+        meme_decomposer.extract_image_regions(flooded_img, rect_regions)
+
 
 
 
