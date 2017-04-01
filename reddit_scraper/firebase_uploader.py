@@ -15,7 +15,7 @@ config = json.load(configFile)
 firebase = pyrebase.initialize_app(config)
 
 db = firebase.database()
-memesRef = db.child("memes")
+# memesRef = db.child("memes")
 
 storage = firebase.storage()
 
@@ -41,11 +41,22 @@ def upload_images_in_directory(dir_path):
             upload_image(dir_path + "/" + file)
 
 def upload_meme(path):
-    split_path = path.split("/")
-    fileName = split_path[len(split_path) - 1]
     location, fileName = os.path.split(path)
-    print("Uploading " + fileName)
-    memesRef.push(fileName)
+    print("Uploading " + fileName, location)
+    splitFileName = fileName.split(".")
+
+    to_push = fileName
+
+
+    # This Version Below Does Not Overwrite Duplicates
+
+    # pushRef = db.child("memes")
+    # pushRef.push(to_push)
+
+    # The Version Below Overwrites Duplicates
+
+    pushRef = db.child("memes").child(splitFileName[0])
+    pushRef.set(to_push)
 
 def upload_memes_in_directory(dir_path):
     files = [f for f in listdir(dir_path) if isfile(join(dir_path, f))]
@@ -58,6 +69,6 @@ def upload_memes_in_directory(dir_path):
         extension_split = file.split(".")
         # if it's an image file
         if (extension_split[len(extension_split) - 1] == 'meme'):
-            upload_meme(dir_path + "/" + file)
+            upload_meme(file)
 
 upload_memes_in_directory(target_directory)
