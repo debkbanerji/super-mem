@@ -6,6 +6,7 @@ credentials.json
 
 # Firebase Credentials
 firebase-config.json
+serviceAccountCredentials.json
 
 # Output from scraper
 output

@@ -65,8 +65,25 @@ angular.module('viewMemes').component('viewMemes', {
                 downloadLink[0].click();
             });
 
+            var deleteButton = document.createElement("a");
+            deleteButton.className = "btn btn-danger";
+            deleteButton.innerHTML = "Delete Meme";
+            deleteButton.addEventListener("click", function () {
+                // self.toJSON = '';
+                // self.toJSON = angular.toJson(meme);
+                // var blob = new Blob([self.toJSON], {type: "application/json;charset=utf-8;"});
+                // var downloadLink = angular.element('<a></a>');
+                // downloadLink.attr('href', window.URL.createObjectURL(blob));
+                // downloadLink.attr('download', meme.$id + '.meme');
+                // downloadLink[0].click();
+                var thisMemeRef = self.memesRef.child(meme.$id);
+                thisMemeRef.set(null);
+                self.memeView.removeChild(memeContainer);
+            });
+
             panel.appendChild(superpanel);
             panel.appendChild(button);
+            panel.appendChild(deleteButton);
             memeContainer.appendChild(panel);
             self.memeView.appendChild(memeContainer)
         };
