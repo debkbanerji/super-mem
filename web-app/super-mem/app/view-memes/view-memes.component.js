@@ -30,18 +30,12 @@ angular.module('viewMemes').component('viewMemes', {
             var superpanel = document.createElement("div");
             superpanel.style = "margin-top: 10px; margin-bottom: 10px;";
             var canvas = document.createElement("canvas");
-            canvas.style = "border:1px solid #000000;";
-
-            var width = meme.width || 300;
-            var height = meme.height || 300;
-
-            canvas.width = width;
-            canvas.height = height;
+            canvas.style = "border:1px solid #DDDDDD;";
 
             drawMeme(canvas, meme);
 
-            // canvas.style += " width: 300px;";
-            // canvas.style += " height: 300px;";
+            // canvas.style += " width: " + canvas.width * 0.6 + "px;";
+            // canvas.style += " height: " + canvas.height * 0.6 + "px;";
             superpanel.appendChild(canvas);
 
             var button = document.createElement("a");
