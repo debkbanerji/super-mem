@@ -252,6 +252,7 @@ class DecompObject():
         self.file_path = file_path
         self.type = type
         self.pose = pose
+        self.data = None
 
     def type(self):
         return self.type;
@@ -272,7 +273,7 @@ class DecompObject():
         }
 
     def __repr__(self):
-        return "%s, %s, %s" % (self.file_path, self.type, self.pose)
+        return "<%s, %s, %s, %s>" % (self.file_path, self.type, self.pose, self.data)
 
 if __name__ == '__main__':
     import sys

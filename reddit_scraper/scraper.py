@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import json
-git puimport os
+import os
 
 import praw
 import urllib.request
