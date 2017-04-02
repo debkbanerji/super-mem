@@ -116,8 +116,6 @@ class MemeDecomposer:
         flooded = working_img.copy()
         mask[:] = 0
         cv2.floodFill(flooded, mask, seed_pt, (0, 255, 0), (flood_lo,)*3, (flood_hi,)*3, flood_flags)
-        # cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
-        # flood_region = cv2.inRange(working_img - flooded, (0, 0, 1), (255, 255, 255))
         flood_region = cv2.cvtColor(working_img - flooded, cv2.COLOR_BGR2GRAY)
         _, flood_region = cv2.threshold(flood_region, 2, 255, cv2.THRESH_BINARY)
         flood_region = cv2.copyMakeBorder(flood_region, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, 0, value=(255,255,255))
@@ -142,13 +140,13 @@ class MemeDecomposer:
             else:
                 leftovers.append(cnt)
 
+        cv2.drawContours(contour_drawing, rectangle_contours, -1, (0,255,0), 3)
+        cv2.drawContours(contour_drawing, leftovers, -1, (255,255,0), 3)
         if draw:
-            cv2.drawContours(contour_drawing, rectangle_contours, -1, (0,255,0), 3)
-            cv2.drawContours(contour_drawing, leftovers, -1, (255,255,0), 3)
             cv2.imshow('main_window', flooded)
             cv2.imshow('edge', contour_drawing)
 
-        return contours, rectangle_contours, flood_region
+        return contours, rectangle_contours, contour_drawing
 
     def extract_image_regions(self, rectangle_contours):
         imgs_extracted = []
@@ -220,7 +218,7 @@ def decompose_image(img_filepath, dest_folder, draw_graphics=False, verbose=Fals
 
     flags = connectivity | cv2.FLOODFILL_FIXED_RANGE
 
-    non_rect_contours, rect_regions, flooded_img = meme_decomposer \
+    non_rect_contours, rect_regions, img_cool_regions = meme_decomposer \
         .flood_find_regions(seed_pt, draw=draw_graphics,
                             flood_data=(lo, hi, flags),
                             canny_threshold_lo_hi=(thrs1, thrs2),
@@ -244,7 +242,35 @@ def decompose_image(img_filepath, dest_folder, draw_graphics=False, verbose=Fals
         decomp_objects.append(DecompObject(uri, TYPE_TEXT, pose))
         i += 1
 
-    return decomp_objects, w, h
+    regions_uri = '%s/meta_%s.png' % (dest_folder, "visualization")
+    cv2.imwrite(regions_uri, img_cool_regions)
+
+    return CompositeObject((w, h), decomp_objects, original_file_path=img_filepath, regions_map_vis=regions_uri)
+
+class CompositeObject():
+    def __init__(self, dims, decomp_objects, original_file_path=None, regions_map_vis=None):
+        self.dims = dims
+        self.decomp_objects = decomp_objects
+        self.original_file_path = original_file_path
+        self.regions_map_vis = regions_map_vis
+
+    def __dict__(self):
+        img_width, img_height = self.dims
+        objects = {}
+        for i in range(len(self.decomp_objects)):
+            obj = self.decomp_objects[i]
+            objects['obj' + str(i)] = obj.__dict__()
+
+        json_map = {
+            'width': img_width,
+            'height': img_height,
+            'objects': objects,
+            'meta': {
+                'original': self.original_file_path,
+                'regions_visual': self.regions_map_vis
+            }
+        }
+        return json_map
 
 class DecompObject():
     def __init__(self, file_path, type, pose):

@@ -39,3 +39,4 @@ jspm_packages
 # Intellij base IDEs
 .idea
 *.json
+*.pyc

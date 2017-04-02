@@ -27,7 +27,7 @@ class RedditScraper():
         print("Scraping memes from r/" + subreddit)
         if not os.path.exists(self.output_folder + "/" + subreddit):
             os.makedirs(self.output_folder + "/" + subreddit)
-        for submission in self.reddit.subreddit(subreddit).hot(limit=max_posts):
+        for submission in self.reddit.subreddit(subreddit).top('month', limit=max_posts):
             is_image = any(string in submission.url for string in self.check_words)
             # print ('[LOG] Checking url:  ' + submission.url)
             # print(submission.shortlink)
