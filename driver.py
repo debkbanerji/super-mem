@@ -5,19 +5,21 @@ from cv import img_decomposition
 import tempfile
 import shutil
 import os
+import uuid
 import traceback
 import pytesseract
 from PIL import Image
 
 def go():
     reddit = scraper.RedditScraper()
-    # all_scraped_files = reddit.scrape_all(['wholesomememes'], 30)
-    all_scraped_files = ['cv/img_test/suit.jpeg']
-    # all_scraped_files = [de.path for de in os.scandir('output/wholesomememes/')]
+    # all_scraped_files = reddit.scrape_all(['wholesomememes'], 20)
+    # all_scraped_files = ['cv/img_test/meme_modified.png']
+    all_scraped_files = [de.path for de in os.scandir('output/wholesomememes/')]
 
     num_failures = 0
     memento = {}
     for img_path in all_scraped_files:
+        base_filename = str(uuid.uuid1())
         container_folder = tempfile.mkdtemp(prefix="img_decomp_")
         print('image decomp for %s generating in %s' % (img_path, container_folder))
         try:
@@ -26,12 +28,12 @@ def go():
                 if ocr_img_obj.type == img_decomposition.TYPE_TEXT:
                     ocr_img_obj.data = pytesseract.image_to_string(Image.open(ocr_img_obj.file_path))
                 else:
-                    firebase_url = firebase_uploader.upload_image(ocr_img_obj.file_path)
+                    firebase_url = firebase_uploader.upload_image(ocr_img_obj.file_path, base_filename + '_' + os.path.basename(ocr_img_obj.file_path))
                     ocr_img_obj.data = firebase_url
 
             meme_dict = make_enclosing_json(img_width, img_height, objects_to_process)
             print(meme_dict)
-            firebase_uploader.upload_meme_json(meme_dict)
+            firebase_uploader.upload_meme_json(meme_dict, base_filename)
 
         except Exception as e:
             print(e)

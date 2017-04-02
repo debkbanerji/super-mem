@@ -19,11 +19,11 @@ db = firebase.database()
 storage = firebase.storage()
 
 #
-def upload_image(path):
+def upload_image(path, filename):
     print("Uploading " + path)
     split_path = path.split("/")
-    storage.child(split_path[len(split_path) - 1]).put(path)
-    return storage.child(split_path[len(split_path) - 1]).get_url(None)
+    storage.child(filename).put(path)
+    return storage.child(filename).get_url(None)
 
 # Uploads all the images in a directory
 def upload_images_in_directory(dir_path):
@@ -65,7 +65,7 @@ def upload_meme(path):
     pushRef = db.child("memes").child(splitFileName[0])
     pushRef.set(to_push)
 
-def upload_meme_json(json_data):
+def upload_meme_json(json_data, filename):
     json_data.pop('$id', None)
     json_data.pop('$priority', None)
 
@@ -78,7 +78,7 @@ def upload_meme_json(json_data):
 
     # The Version Below Overwrites Duplicates
 
-    pushRef = db.child("memes").child(uuid.uuid1())
+    pushRef = db.child("memes").child(filename)
     pushRef.set(to_push)
 
 def upload_memes_in_directory(dir_path):

@@ -233,8 +233,8 @@ def decompose_image(img_filepath, dest_folder, draw_graphics=False, verbose=Fals
 
     i = 0
     for img_data, pose in imgs:
-        uri = '%s/asset_%s.webp' % (dest_folder, i)
-        cv2.imwrite(uri, img_data, [cv2.IMWRITE_WEBP_QUALITY, 100])
+        uri = '%s/asset_%s.png' % (dest_folder, i)
+        cv2.imwrite(uri, img_data)
         decomp_objects.append(DecompObject(uri, TYPE_IMG, pose))
         i += 1
 
