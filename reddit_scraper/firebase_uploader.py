@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from os import listdir
 from os.path import isfile, join
 
@@ -71,6 +72,8 @@ def upload_memes_in_directory(dir_path):
     directories = [f for f in listdir(dir_path) if not isfile(join(dir_path, f))]
     # print(files)
     # print(directories)
+    random.shuffle(files)
+    random.shuffle(directories)
     for directory in directories:
         upload_memes_in_directory(dir_path + "/" + directory)
     for file in files:
