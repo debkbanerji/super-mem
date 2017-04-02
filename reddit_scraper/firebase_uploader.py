@@ -20,12 +20,12 @@ db = firebase.database()
 
 storage = firebase.storage()
 
-
+#
 def upload_image(path):
     print("Uploading " + path)
     split_path = path.split("/")
     storage.child(split_path[len(split_path) - 1]).put(path)
-    # storage.child(path).put(path)
+    return storage.child(split_path[len(split_path) - 1]).get_url(None)
 
 # Uploads all the images in a directory
 def upload_images_in_directory(dir_path):
@@ -39,7 +39,7 @@ def upload_images_in_directory(dir_path):
         extension_split = file.split(".")
         # if it's an image file
         if (extension_split[len(extension_split) - 1] in image_extensions):
-            upload_image(dir_path + "/" + file)
+            print(upload_image(dir_path + "/" + file))
 
 def upload_meme(path):
     location, fileName = os.path.split(path)
@@ -82,4 +82,5 @@ def upload_memes_in_directory(dir_path):
         if (extension_split[len(extension_split) - 1] == 'meme'):
             upload_meme(dir_path + "/" + file)
 
-upload_memes_in_directory(target_directory)
+# upload_memes_in_directory(target_directory)
+print(upload_image("../sample_meme_files/sample base files/cant_if_you_dont.png"))
