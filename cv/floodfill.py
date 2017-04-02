@@ -30,6 +30,7 @@ IMAGE_OCR_MIN_DIM = 25
 IMAGE_SUBCOMPONENT_THRESHOLD = 30 * 30 # if less than some value of pixels (in the normed img), throw it out
 COLOR_BLACK = (0,0,0)
 COLOR_GREEN = (0,255,0)
+COLOR_RED = (0,0,255)
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
@@ -107,7 +108,7 @@ class MemeDecomposer:
         cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
         flood_region = working_img - flooded # todo use a better strategy here. thresholding?
         edges = cv2.Canny(flood_region, canny_threshold_lo, canny_threshold_hi, apertureSize=5)
-        dilated_img = dilate(edges, N=3, iterations=n_dilation_iter)
+        dilated_img = dilate(edges, 3, n_dilation_iter)
         im2, contours, hierarchy = cv2.findContours(dilated_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour_drawing = make_blank_img(h, w)
         rectangle_contours = []
@@ -130,12 +131,12 @@ class MemeDecomposer:
         if draw:
             cv2.drawContours(contour_drawing, rectangle_contours, -1, (0,255,0), 3)
             cv2.drawContours(contour_drawing, leftovers, -1, (255,255,0), 3)
-            cv2.imshow('floodfill', flooded)
+            cv2.imshow('main_window', flooded)
             cv2.imshow('edge', contour_drawing)
 
         return contours, rectangle_contours, flood_region
 
-    def extract_image_regions(self, flooded_image, rectangle_contours):
+    def extract_image_regions(self, rectangle_contours):
         imgs_extracted = []
         ignored_regions = []
         for normed_rect, cnt in contours_to_rectangles(rectangle_contours):
@@ -143,30 +144,46 @@ class MemeDecomposer:
             x, y, w, h = full_rect
             blank = make_blank_img(h, w)
             blank[:] = grab_rgb(self.img_raw, full_rect)
+            print('full rect: ', full_rect)
             imgs_extracted.append((blank, full_rect))
 
         return imgs_extracted, ignored_regions
 
     def find_text(self, rect_regions):
         image, scaled_dims = self.get_working_image()
-        image = cv2.GaussianBlur(image, (13,13), 0)
+        image = cv2.GaussianBlur(image, (9,13), 0)
         mask = np.ones(image.shape[:2], dtype="uint8") * 255
         for rect_region, cnt in contours_to_rectangles(rect_regions): put_fill_rect(mask, rect_region, COLOR_BLACK)
-        mask = dilate(mask, 3, 3, method=cv2.erode)
+        mask = dilate(mask, 5, 3, method=cv2.erode)
         edges = cv2.Canny(image, 30, 50, apertureSize=5)
         mask = cv2.bitwise_and(edges, edges, mask=mask)
-        mask = dilate(mask, 3, 3)
+        cv2.imshow('masked_text_edges', mask)
+        chars_leftright_kernel = np.zeros((3,3), dtype=np.uint8)
+        chars_leftright_kernel[(3-1)//2,:] = 1 # only middle row is in kernel
+        mask = cv2.dilate(mask, chars_leftright_kernel, iterations=1)
+        mask = dilate(mask, 3, 2)
         im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        old_n_contours = len(contours)
+        contours = list(filter(lambda cnt: cv2.contourArea(cnt) >= 100, contours))
+        print('filtered out %s contours' % (old_n_contours - len(contours)))
+
+        resultant_text_regions = []
         for cnt in contours:
-            x,y,r_width,r_height = cv2.boundingRect(cnt)
-            if min(r_width, r_height) >= IMAGE_OCR_MIN_DIM:
+            bounding_rect = cv2.boundingRect(cnt)
+            x,y,r_width,r_height = bounding_rect
+            if r_height >= 6 and not r_height / r_width > 3:
+                resultant_text_regions.append(cnt)
                 cv2.rectangle(image, (x, y), (x+r_width,y+r_height), COLOR_GREEN, 1)
             else:
                 print("skipping potential text region with dimensions %s x %s" % (r_width, r_height))
+                cv2.rectangle(image, (x, y), (x+r_width,y+r_height), COLOR_RED, 1)
 
 
-        # cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
-        cv2.imshow('edge', image)
+        # blank = make_blank_img(self.img_h, self.img_w)
+        # blank= cv2.drawContours(blank, contours, -1, (0, 255, 0), 3)
+        # cv2.imshow('edge', blank)
+        # cv2.imshow('main_window', image)
+        return resultant_text_regions
 
 if __name__ == '__main__':
     import sys
@@ -187,10 +204,10 @@ if __name__ == '__main__':
 
     def update(dummy=None):
         if seed_pt is None:
-            cv2.imshow('floodfill', img)
+            cv2.imshow('main_window', img)
             return
-        lo = cv2.getTrackbarPos('lo', 'floodfill')
-        hi = cv2.getTrackbarPos('hi', 'floodfill')
+        lo = cv2.getTrackbarPos('lo', 'main_window')
+        hi = cv2.getTrackbarPos('hi', 'main_window')
         thrs1 = cv2.getTrackbarPos('thrs1', 'edge')
         thrs2 = cv2.getTrackbarPos('thrs2', 'edge')
         dilation_iterations = cv2.getTrackbarPos('dilation_iterations', 'edge')
@@ -199,23 +216,29 @@ if __name__ == '__main__':
             flags |= cv2.FLOODFILL_FIXED_RANGE
 
         non_rect_contours, rect_regions, flooded_img = meme_decomposer \
-            .flood_find_regions(seed_pt, draw=False,
+            .flood_find_regions(seed_pt, draw=True,
                                 flood_data=(lo, hi, flags),
                                 canny_threshold_lo_hi=(thrs1, thrs2),
                                 n_dilation_iter=dilation_iterations)
-        imgs, ignored = meme_decomposer.extract_image_regions(flooded_img, rect_regions)
-        meme_decomposer.find_text(rect_regions)
-        cv2.drawContours(flooded_img, ignored, -1, (0,0,250), 3)
-        # cv2.imshow('edge', flooded_img)
+        imgs, ignored = meme_decomposer.extract_image_regions(rect_regions)
+        text_regions = meme_decomposer.find_text(rect_regions)
+        text_imgs, _ = meme_decomposer.extract_image_regions(text_regions)
 
-        seq = iter(range(len(imgs)))
+        i = 0
         for img_data, pose in imgs:
+            print('got pose', pose)
             # TODO right now it's setting each image as 0.webp, 1.webp and so on. These should be uploaded to firebase
             ensure_dir('generated_img_components/')
-            # cv2.imwrite('generated_img_components/' + str(next(seq)) + '.webp', img_data, [cv2.IMWRITE_WEBP_QUALITY, 20])
+            cv2.imwrite('generated_img_components/' + str(i) + '.webp', img_data, [cv2.IMWRITE_WEBP_QUALITY, 100]) # TODO research this
 
             # TODO write the pose data to json
             x, y, w, h = pose
+            i += 1
+
+        print(len(text_imgs))
+        for tr, pose in text_imgs:
+            cv2.imshow(str(pose), tr)
+
 
 
 
@@ -228,9 +251,9 @@ if __name__ == '__main__':
             update()
 
     update()
-    cv2.setMouseCallback('floodfill', onmouse)
-    cv2.createTrackbar('lo', 'floodfill', 30, 255, update)
-    cv2.createTrackbar('hi', 'floodfill', 50, 255, update)
+    cv2.setMouseCallback('main_window', onmouse)
+    cv2.createTrackbar('lo', 'main_window', 30, 255, update)
+    cv2.createTrackbar('hi', 'main_window', 50, 255, update)
     cv2.createTrackbar('thrs1', 'edge', 2000, 5000, update)
     cv2.createTrackbar('thrs2', 'edge', 4000, 5000, update)
     cv2.createTrackbar('dilation_iterations', 'edge', 3, 10, update)
