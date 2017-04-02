@@ -14,12 +14,8 @@ Keys:
   ESC   - exit
 '''
 
-# Python 2/3 compatibility
-from __future__ import print_function
-
 import numpy as np
 import cv2
-from time import sleep
 import os
 
 # hierarchy structure:
@@ -27,10 +23,13 @@ import os
 CV_CONTOUR_PARENT = 2
 IMAGE_NORM_WIDTH = 500
 IMAGE_OCR_MIN_DIM = 25
-IMAGE_SUBCOMPONENT_THRESHOLD = 30 * 30 # if less than some value of pixels (in the normed img), throw it out
+IMAGE_SUBCOMPONENT_THRESHOLD = 40 * 30 # if less than some value of pixels (in the normed img), throw it out
 COLOR_BLACK = (0,0,0)
 COLOR_GREEN = (0,255,0)
 COLOR_RED = (0,0,255)
+TYPE_IMG = 0
+TYPE_TEXT = 1
+FLOOD_BORDER_PX=2 # dont make this higher than 2 :P TODO understand why and fix
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
@@ -48,21 +47,29 @@ def img_normalize_dimensions(img, width=-1, height=-1):
     return cv2.resize(img, new_dims), new_dims
 
 # based on http://stackoverflow.com/a/26445324
-def grab_rgb(image, rect):
+def grab_rgb(image, rect, img_w, img_h):
     x, y, r_width, r_height = rect
+    if y+r_height >= img_h:
+        r_height = img_h - 1 -y
+    if x+r_width >= img_w:
+        r_width= img_w- 1 - x
     return image[y:y+r_height, x:x+r_width]
 
 def put_fill_rect(mask, rect, fill):
     x, y, r_width, r_height = rect
     cv2.rectangle(mask, (x, y), (x+r_width,y+r_height), fill, -1)
 
-def transform_rect(rect, scale_hw):
+def transform_point(point, scale_hw, offset=0):
     height_scale, width_scale = scale_hw
+    x, y = point
+    x+=offset
+    y+=offset
+    return (round(x * width_scale), round(y * height_scale))
+
+def transform_rect(rect, scale_hw, offset=0):
     x, y, r_width, r_height = rect
-    x = round(x * width_scale)
-    y = round(y * height_scale)
-    r_width = round(r_width * width_scale)
-    r_height = round(r_height * height_scale)
+    x, y = transform_point( (x,y), scale_hw, offset=offset)
+    r_width, r_height = transform_point( (r_width, r_height), scale_hw, offset=offset)
     return (x, y, r_width, r_height)
 
 def contours_to_rectangles(contour_rects):
@@ -71,6 +78,7 @@ def contours_to_rectangles(contour_rects):
 
 # via morphology blog post
 # http://www.danvk.org/2015/01/07/finding-blocks-of-text-in-an-image-using-python-opencv-and-numpy.html
+# idk why they use this kernel but it works very well :)
 def dilate(ary, N, iterations, method=cv2.dilate):
     """Dilate using an NxN '+' sign shape. ary is np.uint8."""
     kernel = np.zeros((N,N), dtype=np.uint8)
@@ -91,22 +99,28 @@ class MemeDecomposer:
         self.img_w = img_w
         self.flood_scale_factor_hw = (img_h / scaled_h, img_w / scaled_w)
 
-
     def get_working_image(self):
         working_img, scaled_dims = img_normalize_dimensions(self.img_raw.copy(), width=self.img_w, height=self.img_h)
         return working_img, scaled_dims
 
     def flood_find_regions(self, seed_pt, draw=False, mask=None, flood_data=(-1, -1, 0), canny_threshold_lo_hi=(-1, -1), n_dilation_iter=1):
         mask = mask or self.DEFAULT_MASK
+        scaled_reverse = (1/self.flood_scale_factor_hw[0], 1/self.flood_scale_factor_hw[1])
+        seed_pt = transform_point(seed_pt, scaled_reverse)
+
         working_img, scaled_dims = self.get_working_image()
+        w, h = scaled_dims
         working_img = cv2.bilateralFilter(working_img, 11, 17, 25)
         flood_lo, flood_hi, flood_flags = flood_data
         canny_threshold_lo, canny_threshold_hi = canny_threshold_lo_hi
         flooded = working_img.copy()
         mask[:] = 0
         cv2.floodFill(flooded, mask, seed_pt, (0, 255, 0), (flood_lo,)*3, (flood_hi,)*3, flood_flags)
-        cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
-        flood_region = working_img - flooded # todo use a better strategy here. thresholding?
+        # cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
+        # flood_region = cv2.inRange(working_img - flooded, (0, 0, 1), (255, 255, 255))
+        flood_region = cv2.cvtColor(working_img - flooded, cv2.COLOR_BGR2GRAY)
+        _, flood_region = cv2.threshold(flood_region, 2, 255, cv2.THRESH_BINARY)
+        flood_region = cv2.copyMakeBorder(flood_region, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, 0, value=(255,255,255))
         edges = cv2.Canny(flood_region, canny_threshold_lo, canny_threshold_hi, apertureSize=5)
         dilated_img = dilate(edges, 3, n_dilation_iter)
         im2, contours, hierarchy = cv2.findContours(dilated_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -140,16 +154,16 @@ class MemeDecomposer:
         imgs_extracted = []
         ignored_regions = []
         for normed_rect, cnt in contours_to_rectangles(rectangle_contours):
-            full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw)
+            full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw, offset=0)
             x, y, w, h = full_rect
             blank = make_blank_img(h, w)
-            blank[:] = grab_rgb(self.img_raw, full_rect)
+            blank[:] = grab_rgb(self.img_raw, full_rect, self.img_w, self.img_h)
             print('full rect: ', full_rect)
             imgs_extracted.append((blank, full_rect))
 
         return imgs_extracted, ignored_regions
 
-    def find_text(self, rect_regions):
+    def find_text(self, rect_regions, draw_graphics=False):
         image, scaled_dims = self.get_working_image()
         image = cv2.GaussianBlur(image, (9,13), 0)
         mask = np.ones(image.shape[:2], dtype="uint8") * 255
@@ -157,7 +171,10 @@ class MemeDecomposer:
         mask = dilate(mask, 5, 3, method=cv2.erode)
         edges = cv2.Canny(image, 30, 50, apertureSize=5)
         mask = cv2.bitwise_and(edges, edges, mask=mask)
-        cv2.imshow('masked_text_edges', mask)
+
+        if draw_graphics:
+            cv2.imshow('masked_text_edges', mask)
+
         chars_leftright_kernel = np.zeros((3,3), dtype=np.uint8)
         chars_leftright_kernel[(3-1)//2,:] = 1 # only middle row is in kernel
         mask = cv2.dilate(mask, chars_leftright_kernel, iterations=1)
@@ -178,96 +195,93 @@ class MemeDecomposer:
                 print("skipping potential text region with dimensions %s x %s" % (r_width, r_height))
                 cv2.rectangle(image, (x, y), (x+r_width,y+r_height), COLOR_RED, 1)
 
+        if draw_graphics:
+            blank = make_blank_img(self.img_h, self.img_w)
+            blank= cv2.drawContours(blank, contours, -1, (0, 255, 0), 3)
+            cv2.imshow('edge', blank)
+            cv2.imshow('main_window', image)
 
-        # blank = make_blank_img(self.img_h, self.img_w)
-        # blank= cv2.drawContours(blank, contours, -1, (0, 255, 0), 3)
-        # cv2.imshow('edge', blank)
-        # cv2.imshow('main_window', image)
         return resultant_text_regions
 
-if __name__ == '__main__':
-    import sys
-    fn = sys.argv[1]
-    print(__doc__)
-    cv2.namedWindow('edge')
-
-    img = cv2.imread(fn, True)
+def decompose_image(img_filepath, dest_folder, draw_graphics=False):
+    img = cv2.imread(img_filepath, True)
     if img is None:
-        print('Failed to load image file:', fn)
-        sys.exit(1)
+        raise "Failed to load the file at %s" % img_filepath
 
     h, w = img.shape[:2]
-    seed_pt = None
+    seed_pt = (w - 5, 5) # super advanced hackathon grade seeding algorithm
     fixed_range = True
     connectivity = 4
     meme_decomposer = MemeDecomposer(img, h, w)
+    lo = 30
+    hi = 50
+    thrs1 = 2000
+    thrs2 = 4000
+    dilation_iterations = 3
 
-    def update(dummy=None):
-        if seed_pt is None:
-            cv2.imshow('main_window', img)
-            return
-        lo = cv2.getTrackbarPos('lo', 'main_window')
-        hi = cv2.getTrackbarPos('hi', 'main_window')
-        thrs1 = cv2.getTrackbarPos('thrs1', 'edge')
-        thrs2 = cv2.getTrackbarPos('thrs2', 'edge')
-        dilation_iterations = cv2.getTrackbarPos('dilation_iterations', 'edge')
-        flags = connectivity
-        if fixed_range:
-            flags |= cv2.FLOODFILL_FIXED_RANGE
+    flags = connectivity | cv2.FLOODFILL_FIXED_RANGE
 
-        non_rect_contours, rect_regions, flooded_img = meme_decomposer \
-            .flood_find_regions(seed_pt, draw=True,
-                                flood_data=(lo, hi, flags),
-                                canny_threshold_lo_hi=(thrs1, thrs2),
-                                n_dilation_iter=dilation_iterations)
-        imgs, ignored = meme_decomposer.extract_image_regions(rect_regions)
-        text_regions = meme_decomposer.find_text(rect_regions)
-        text_imgs, _ = meme_decomposer.extract_image_regions(text_regions)
+    non_rect_contours, rect_regions, flooded_img = meme_decomposer \
+        .flood_find_regions(seed_pt, draw=draw_graphics,
+                            flood_data=(lo, hi, flags),
+                            canny_threshold_lo_hi=(thrs1, thrs2),
+                            n_dilation_iter=dilation_iterations)
+    imgs, ignored = meme_decomposer.extract_image_regions(rect_regions)
+    text_regions = meme_decomposer.find_text(rect_regions)
+    text_imgs, _ = meme_decomposer.extract_image_regions(text_regions)
 
-        i = 0
-        for img_data, pose in imgs:
-            print('got pose', pose)
-            # TODO right now it's setting each image as 0.webp, 1.webp and so on. These should be uploaded to firebase
-            ensure_dir('generated_img_components/')
-            cv2.imwrite('generated_img_components/' + str(i) + '.webp', img_data, [cv2.IMWRITE_WEBP_QUALITY, 100]) # TODO research this
+    decomp_objects = []
 
-            # TODO write the pose data to json
-            x, y, w, h = pose
-            i += 1
+    i = 0
+    for img_data, pose in imgs:
+        uri = '%s/asset_%s.webp' % (dest_folder, i)
+        cv2.imwrite(uri, img_data, [cv2.IMWRITE_WEBP_QUALITY, 100])
+        decomp_objects.append(DecompObject(uri, TYPE_IMG, pose))
+        i += 1
 
-        print(len(text_imgs))
-        for tr, pose in text_imgs:
-            cv2.imshow(str(pose), tr)
+    for tr, pose in text_imgs:
+        uri = '%s/ocr_%s.png' % (dest_folder, i)
+        cv2.imwrite(uri, tr)
+        decomp_objects.append(DecompObject(uri, TYPE_TEXT, pose))
+        i += 1
 
+    return decomp_objects
 
+class DecompObject():
+    def __init__(self, file_path, type, pose):
+        self.file_path = file_path
+        self.type = type
+        self.pose = pose
 
+    def type(self):
+        return self.type;
 
+    def file_path(self):
+        return self.file_path
 
+    def pose(self):
+        return self.pose
 
-    def onmouse(event, x, y, flags, param):
-        global seed_pt
-        if flags & cv2.EVENT_FLAG_LBUTTON:
-            seed_pt = x, y
-            update()
+    def __dict__(self):
+        x,y,w,h = self.pose
+        return {
+            'x': x,
+            'y': y,
+            'width': w,
+            'height': h
+        }
 
-    update()
-    cv2.setMouseCallback('main_window', onmouse)
-    cv2.createTrackbar('lo', 'main_window', 30, 255, update)
-    cv2.createTrackbar('hi', 'main_window', 50, 255, update)
-    cv2.createTrackbar('thrs1', 'edge', 2000, 5000, update)
-    cv2.createTrackbar('thrs2', 'edge', 4000, 5000, update)
-    cv2.createTrackbar('dilation_iterations', 'edge', 3, 10, update)
+    def __repr__(self):
+        return "%s, %s, %s" % (self.file_path, self.type, self.pose)
 
-    while True:
-        ch = cv2.waitKey()
-        if ch == 27:
-            break
-        if ch == ord('f'):
-            fixed_range = not fixed_range
-            print('using %s range' % ('floating', 'fixed')[fixed_range])
-            update()
-        if ch == ord('c'):
-            connectivity = 12-connectivity
-            print('connectivity =', connectivity)
-            update()
+if __name__ == '__main__':
+    import sys
+    img_path = sys.argv[1]
+    print(__doc__)
+    cv2.namedWindow('edge')
+    decompose_image(img_path, '.', draw_graphics=True)
+
+    while cv2.waitKey(0) != 97: pass
     cv2.destroyAllWindows()
+
+
