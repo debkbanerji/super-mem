@@ -46,13 +46,7 @@ angular.module('uploadMemes').component('uploadMemes', {
             var superpanel = document.createElement("div");
             superpanel.style = "margin-top: 10px; margin-bottom: 10px;";
             var canvas = document.createElement("canvas");
-            canvas.style = "border:1px solid #000000;";
-
-            var width = meme.width || 300;
-            var height = meme.height || 300;
-
-            canvas.width = width;
-            canvas.height = height;
+            canvas.style = "border:1px solid #DDDDDD;";
 
             drawMeme(canvas, meme);
 
