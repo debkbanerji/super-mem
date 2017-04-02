@@ -27,20 +27,32 @@ angular.module('viewMemes').component('viewMemes', {
             // memeContainer.className = "col-lg-2 col-md-4 col-sm-6 col-xs-6";
             var panel = document.createElement("div");
             panel.className = "container-fluid panel";
-            var superpanel = document.createElement("div");
-            superpanel.style = "margin-top: 10px; margin-bottom: 10px;";
+            var subpanel = document.createElement("div");
+            subpanel.style = "margin-top: 10px; margin-bottom: 10px;";
+            subpanel.className = "row";
+
+            var col1 = document.createElement("div");
+            col1.className = "col-md-6";
+
             var canvas = document.createElement("canvas");
             canvas.style = "border:1px solid #DDDDDD;";
 
             drawMeme(canvas, meme);
 
-            // canvas.className = "meme-canvas";
             canvas.classList.add("meme-canvas");
-            // canvas.style += " max-width: 30px;";
 
-            console.log(canvas);
-            superpanel.appendChild(canvas);
+            col1.appendChild(canvas);
+            subpanel.appendChild(col1);
 
+            var col2 = document.createElement("div");
+            col1.className = "col-md-6";
+            var meta_image = document.createElement("img");
+            if (meme.meta) {
+                meta_image.src = meme.meta.regions_visual;
+                meta_image.classList.add("meme-canvas");
+                col2.appendChild(meta_image);
+                subpanel.appendChild(col2);
+            }
 
             var keys = Object.keys(meme.objects);
 
@@ -60,7 +72,7 @@ angular.module('viewMemes').component('viewMemes', {
 
             info_text_element.innerHTML = info_text;
 
-            superpanel.appendChild(info_text_element);
+            subpanel.appendChild(info_text_element);
 
             var button = document.createElement("a");
             button.className = "btn btn-info";
@@ -92,7 +104,7 @@ angular.module('viewMemes').component('viewMemes', {
                 // console.log(self.user);
                 if (!self.user) {
                     console.log("LOGIN TIME");
-                    $rootScope.$apply(function() {
+                    $rootScope.$apply(function () {
                         $location.path("/login");
                     });
                 } else {
@@ -103,7 +115,16 @@ angular.module('viewMemes').component('viewMemes', {
                 }
             });
 
-            panel.appendChild(superpanel);
+
+            panel.appendChild(subpanel);
+            if (meme.meta) {
+                var originalButton = document.createElement("a");
+                originalButton.className = "btn btn-info";
+                originalButton.innerHTML = "View original file";
+                originalButton.href = meme.meta.original;
+                originalButton.target = "_blank";
+                panel.appendChild(originalButton);
+            }
             panel.appendChild(button);
             panel.appendChild(deleteButton);
             memeContainer.appendChild(panel);
