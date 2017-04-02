@@ -82,5 +82,5 @@ def upload_memes_in_directory(dir_path):
         if (extension_split[len(extension_split) - 1] == 'meme'):
             upload_meme(dir_path + "/" + file)
 
-# upload_memes_in_directory(target_directory)
-print(upload_image("../sample_meme_files/sample base files/cant_if_you_dont.png"))
+upload_memes_in_directory(target_directory)
+# print(upload_image("../sample_meme_files/sample base files/cant_if_you_dont.png"))

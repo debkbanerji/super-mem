@@ -2,9 +2,9 @@
 angular.module('viewMemes').component('viewMemes', {
     templateUrl: 'view-memes/view-memes.template.html',
 
-    controller: ['$routeParams', '$route', '$firebaseObject', '$firebaseArray', function viewMemesController($routeParams, $route, $firebaseObject, $firebaseArray) {
+    controller: ['$location', '$rootScope', '$routeParams', '$route', '$firebaseObject', '$firebaseArray', function viewMemesController($location, $rootScope, $routeParams, $route, $firebaseObject, $firebaseArray) {
         var self = this;
-        // var user = firebase.auth().currentUser;
+        self.user = firebase.auth().currentUser;
         self.memesRef = firebase.database().ref().child("memes");
         self.memesArray = $firebaseArray(self.memesRef);
 
@@ -55,16 +55,28 @@ angular.module('viewMemes').component('viewMemes', {
             deleteButton.className = "btn btn-danger";
             deleteButton.innerHTML = "Delete Meme";
             deleteButton.addEventListener("click", function () {
-                // self.toJSON = '';
-                // self.toJSON = angular.toJson(meme);
-                // var blob = new Blob([self.toJSON], {type: "application/json;charset=utf-8;"});
-                // var downloadLink = angular.element('<a></a>');
-                // downloadLink.attr('href', window.URL.createObjectURL(blob));
-                // downloadLink.attr('download', meme.$id + '.meme');
-                // downloadLink[0].click();
-                var thisMemeRef = self.memesRef.child(meme.$id);
-                thisMemeRef.set(null);
-                self.memeView.removeChild(memeContainer);
+                // // if (!self.user) {
+                // //     $rootScope.$apply(function () {
+                // //         $location.path("/login");
+                // //     });
+                // // } else {
+                //     var thisMemeRef = self.memesRef.child(meme.$id);
+                //     thisMemeRef.set(null);
+                //     self.memeView.removeChild(memeContainer);
+                // // }
+                self.user = firebase.auth().currentUser;
+                // console.log(self.user);
+                if (!self.user) {
+                    console.log("LOGIN TIME");
+                    $rootScope.$apply(function() {
+                        $location.path("/login");
+                    });
+                } else {
+                    var thisMemeRef = self.memesRef.child(meme.$id);
+                    thisMemeRef.set(null);
+                    self.memeView.removeChild(memeContainer);
+                    // $route.reload();
+                }
             });
 
             panel.appendChild(superpanel);

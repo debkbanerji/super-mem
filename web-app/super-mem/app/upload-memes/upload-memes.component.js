@@ -1,9 +1,9 @@
 angular.module('uploadMemes').component('uploadMemes', {
     templateUrl: 'upload-memes/upload-memes.template.html',
 
-    controller: ['$scope', '$routeParams', '$route', '$firebaseObject', '$firebaseArray', function uploadMemesController($scope, $routeParams, $route, $firebaseObject, $firebaseArray) {
+    controller: ['$rootScope', '$window', '$location', '$scope', '$routeParams', '$route', '$firebaseObject', '$firebaseArray', function uploadMemesController($rootScope, $window, $location, $scope, $routeParams, $route, $firebaseObject, $firebaseArray) {
         var self = this;
-        var user = firebase.auth().currentUser;
+        self.user = firebase.auth().currentUser;
         self.memesRef = firebase.database().ref().child("memes");
         self.memeFile = null;
         self.rawMemeData = null;
@@ -58,11 +58,18 @@ angular.module('uploadMemes').component('uploadMemes', {
             button.className = "btn btn-info";
             button.innerHTML = "Upload meme to database";
             button.addEventListener("click", function () {
-                sanitizedMeme = meme;
-                delete sanitizedMeme.$id;
-                delete sanitizedMeme.$priority;
-                self.memesRef.push(meme);
-                $route.reload();
+                if (!self.user) {
+                    console.log("LOGIN TIME");
+                    $rootScope.$apply(function() {
+                        $location.path("/login");
+                    });
+                } else {
+                    sanitizedMeme = meme;
+                    delete sanitizedMeme.$id;
+                    delete sanitizedMeme.$priority;
+                    self.memesRef.push(meme);
+                    $route.reload();
+                }
             });
 
             panel.appendChild(superpanel);
