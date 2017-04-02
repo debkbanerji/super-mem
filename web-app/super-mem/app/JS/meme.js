@@ -24,7 +24,7 @@ var drawElement = function (ctx, element) {
             ctx.drawImage(img, element.x, element.y, element.width, element.height);
         };
     } else if (element.type === "text") {
-        var correctedHeight = element.height * 0.4;
+        var correctedHeight = element.height * 1;
         ctx.font = "" + correctedHeight + "px Helvetica Neue";
         ctx.fillStyle = 'black';
         ctx.fillText(element.data, element.x, element.y + correctedHeight, element.width);
