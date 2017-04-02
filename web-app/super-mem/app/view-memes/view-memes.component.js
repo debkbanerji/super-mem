@@ -34,8 +34,11 @@ angular.module('viewMemes').component('viewMemes', {
 
             drawMeme(canvas, meme);
 
-            // canvas.style += " width: " + canvas.width * 0.6 + "px;";
-            // canvas.style += " height: " + canvas.height * 0.6 + "px;";
+            // canvas.className = "meme-canvas";
+            canvas.classList.add("meme-canvas");
+            // canvas.style += " max-width: 30px;";
+
+            console.log(canvas);
             superpanel.appendChild(canvas);
 
 
