@@ -12,7 +12,7 @@ angular.module('superMemApp').config(['$locationProvider', '$routeProvider',
             template: '<developer-mode></developer-mode>'
         }).when('/login', {
             template: '<login></login>'
-        }).otherwise('/login');
+        }).otherwise('/view-memes');
 
 
         // use the HTML5 History API

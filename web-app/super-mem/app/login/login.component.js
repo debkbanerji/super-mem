@@ -10,12 +10,14 @@ angular.module('login').component('login', {
             if (!user) {
                 document.getElementById("authScreen").style.visibility = "visible";
                 document.getElementById("loading").style.visibility = "hidden";
+                // document.getElementById("sign_out").style.visibility = "hidden";
             } else {
                 document.getElementById("authScreen").style.visibility = "hidden";
                 document.getElementById("loading").style.visibility = "visible";
-                $rootScope.$apply(function() {
-                    $location.path("/view-memes");
-                });
+                // document.getElementById("sign_out").style.visibility = "visible";
+                // $rootScope.$apply(function() {
+                //     $location.path("/view-memes");
+                // });
             }
         });
 
