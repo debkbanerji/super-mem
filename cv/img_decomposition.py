@@ -29,6 +29,7 @@ COLOR_GREEN = (0,255,0)
 COLOR_RED = (0,0,255)
 TYPE_IMG = 0
 TYPE_TEXT = 1
+FLOOD_BORDER_PX=2 # dont make this higher than 2 :P TODO understand why and fix
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
@@ -46,23 +47,29 @@ def img_normalize_dimensions(img, width=-1, height=-1):
     return cv2.resize(img, new_dims), new_dims
 
 # based on http://stackoverflow.com/a/26445324
-def grab_rgb(image, rect):
+def grab_rgb(image, rect, img_w, img_h):
     x, y, r_width, r_height = rect
+    if y+r_height >= img_h:
+        r_height = img_h - 1 -y
+    if x+r_width >= img_w:
+        r_width= img_w- 1 - x
     return image[y:y+r_height, x:x+r_width]
 
 def put_fill_rect(mask, rect, fill):
     x, y, r_width, r_height = rect
     cv2.rectangle(mask, (x, y), (x+r_width,y+r_height), fill, -1)
 
-def transform_point(point, scale_hw):
+def transform_point(point, scale_hw, offset=0):
     height_scale, width_scale = scale_hw
     x, y = point
+    x+=offset
+    y+=offset
     return (round(x * width_scale), round(y * height_scale))
 
-def transform_rect(rect, scale_hw):
+def transform_rect(rect, scale_hw, offset=0):
     x, y, r_width, r_height = rect
-    x, y = transform_point( (x,y), scale_hw )
-    r_width, r_height = transform_point( (r_width, r_height), scale_hw )
+    x, y = transform_point( (x,y), scale_hw, offset=offset)
+    r_width, r_height = transform_point( (r_width, r_height), scale_hw, offset=offset)
     return (x, y, r_width, r_height)
 
 def contours_to_rectangles(contour_rects):
@@ -98,7 +105,6 @@ class MemeDecomposer:
 
     def flood_find_regions(self, seed_pt, draw=False, mask=None, flood_data=(-1, -1, 0), canny_threshold_lo_hi=(-1, -1), n_dilation_iter=1):
         mask = mask or self.DEFAULT_MASK
-        print(seed_pt)
         scaled_reverse = (1/self.flood_scale_factor_hw[0], 1/self.flood_scale_factor_hw[1])
         seed_pt = transform_point(seed_pt, scaled_reverse)
 
@@ -110,8 +116,12 @@ class MemeDecomposer:
         flooded = working_img.copy()
         mask[:] = 0
         cv2.floodFill(flooded, mask, seed_pt, (0, 255, 0), (flood_lo,)*3, (flood_hi,)*3, flood_flags)
-        cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
-        flood_region = working_img - flooded # todo use a better strategy here. thresholding?
+        # cv2.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
+        # flood_region = cv2.inRange(working_img - flooded, (0, 0, 1), (255, 255, 255))
+        flood_region = cv2.cvtColor(working_img - flooded, cv2.COLOR_BGR2GRAY)
+        _, flood_region = cv2.threshold(flood_region, 2, 255, cv2.THRESH_BINARY)
+        flood_region = cv2.copyMakeBorder(flood_region, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, 0, value=(255,255,255))
+        cv2.imshow('test', flood_region)
         edges = cv2.Canny(flood_region, canny_threshold_lo, canny_threshold_hi, apertureSize=5)
         dilated_img = dilate(edges, 3, n_dilation_iter)
         im2, contours, hierarchy = cv2.findContours(dilated_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -145,10 +155,10 @@ class MemeDecomposer:
         imgs_extracted = []
         ignored_regions = []
         for normed_rect, cnt in contours_to_rectangles(rectangle_contours):
-            full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw)
+            full_rect = transform_rect(normed_rect, self.flood_scale_factor_hw, offset=0)
             x, y, w, h = full_rect
             blank = make_blank_img(h, w)
-            blank[:] = grab_rgb(self.img_raw, full_rect)
+            blank[:] = grab_rgb(self.img_raw, full_rect, self.img_w, self.img_h)
             print('full rect: ', full_rect)
             imgs_extracted.append((blank, full_rect))
 
@@ -270,9 +280,9 @@ if __name__ == '__main__':
     img_path = sys.argv[1]
     print(__doc__)
     cv2.namedWindow('edge')
-    decompose_image(img_path, 'output', draw_graphics=True)
+    decompose_image(img_path, '.', draw_graphics=True)
 
-    cv2.waitKey()
+    while cv2.waitKey(0) != 97: pass
     cv2.destroyAllWindows()
 
 
