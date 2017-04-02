@@ -23,7 +23,7 @@ import os
 CV_CONTOUR_PARENT = 2
 IMAGE_NORM_WIDTH = 500
 IMAGE_OCR_MIN_DIM = 25
-IMAGE_SUBCOMPONENT_THRESHOLD = 30 * 30 # if less than some value of pixels (in the normed img), throw it out
+IMAGE_SUBCOMPONENT_THRESHOLD = 40 * 30 # if less than some value of pixels (in the normed img), throw it out
 COLOR_BLACK = (0,0,0)
 COLOR_GREEN = (0,255,0)
 COLOR_RED = (0,0,255)
@@ -121,7 +121,6 @@ class MemeDecomposer:
         flood_region = cv2.cvtColor(working_img - flooded, cv2.COLOR_BGR2GRAY)
         _, flood_region = cv2.threshold(flood_region, 2, 255, cv2.THRESH_BINARY)
         flood_region = cv2.copyMakeBorder(flood_region, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, FLOOD_BORDER_PX, 0, value=(255,255,255))
-        cv2.imshow('test', flood_region)
         edges = cv2.Canny(flood_region, canny_threshold_lo, canny_threshold_hi, apertureSize=5)
         dilated_img = dilate(edges, 3, n_dilation_iter)
         im2, contours, hierarchy = cv2.findContours(dilated_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
