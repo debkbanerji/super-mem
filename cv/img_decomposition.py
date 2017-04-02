@@ -27,8 +27,8 @@ IMAGE_SUBCOMPONENT_THRESHOLD = 40 * 30 # if less than some value of pixels (in t
 COLOR_BLACK = (0,0,0)
 COLOR_GREEN = (0,255,0)
 COLOR_RED = (0,0,255)
-TYPE_IMG = 0
-TYPE_TEXT = 1
+TYPE_IMG = "image"
+TYPE_TEXT = "text"
 FLOOD_BORDER_PX=2 # dont make this higher than 2 :P TODO understand why and fix
 
 def ensure_dir(file_path):
@@ -132,11 +132,11 @@ class MemeDecomposer:
             approx = cv2.approxPolyDP(cnt,epsilon,True)
             if len(approx) == 4:
                 if contour_meta[CV_CONTOUR_PARENT] != -1:
-                    print('dropping contour because it is not innermost.')
+                    if draw: print('dropping contour because it is not innermost.')
                 else:
                     _, _, normed_w, normed_h = cv2.boundingRect(approx)
                     if normed_w * normed_h < IMAGE_SUBCOMPONENT_THRESHOLD:
-                        print("skipping contour with dimensions %s x %s" % (normed_w, normed_h))
+                        if draw: print("skipping contour with dimensions %s x %s" % (normed_w, normed_h))
                     else:
                         rectangle_contours.append(approx)
             else:
@@ -158,7 +158,6 @@ class MemeDecomposer:
             x, y, w, h = full_rect
             blank = make_blank_img(h, w)
             blank[:] = grab_rgb(self.img_raw, full_rect, self.img_w, self.img_h)
-            print('full rect: ', full_rect)
             imgs_extracted.append((blank, full_rect))
 
         return imgs_extracted, ignored_regions
@@ -203,7 +202,7 @@ class MemeDecomposer:
 
         return resultant_text_regions
 
-def decompose_image(img_filepath, dest_folder, draw_graphics=False):
+def decompose_image(img_filepath, dest_folder, draw_graphics=False, verbose=False):
     img = cv2.imread(img_filepath, True)
     if img is None:
         raise "Failed to load the file at %s" % img_filepath
@@ -245,7 +244,7 @@ def decompose_image(img_filepath, dest_folder, draw_graphics=False):
         decomp_objects.append(DecompObject(uri, TYPE_TEXT, pose))
         i += 1
 
-    return decomp_objects
+    return decomp_objects, w, h
 
 class DecompObject():
     def __init__(self, file_path, type, pose):
@@ -254,23 +253,19 @@ class DecompObject():
         self.pose = pose
         self.data = None
 
-    def type(self):
-        return self.type;
-
-    def file_path(self):
-        return self.file_path
-
-    def pose(self):
-        return self.pose
-
     def __dict__(self):
         x,y,w,h = self.pose
         return {
             'x': x,
             'y': y,
             'width': w,
-            'height': h
+            'height': h,
+            'data': self.data,
+            'type': self.type
         }
+
+    def is_ready(self):
+        return self.x and self.y and self.width and self.height and self.data and self.type
 
     def __repr__(self):
         return "<%s, %s, %s, %s>" % (self.file_path, self.type, self.pose, self.data)
@@ -280,7 +275,7 @@ if __name__ == '__main__':
     img_path = sys.argv[1]
     print(__doc__)
     cv2.namedWindow('edge')
-    decompose_image(img_path, '.', draw_graphics=True)
+    decompose_image(img_path, '.', draw_graphics=True, verbose=True)
 
     while cv2.waitKey(0) != 97: pass
     cv2.destroyAllWindows()

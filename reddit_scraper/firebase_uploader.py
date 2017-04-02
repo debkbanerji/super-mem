@@ -1,4 +1,5 @@
 import json
+import uuid
 import os
 import random
 from os import listdir
@@ -6,9 +7,7 @@ from os.path import isfile, join
 
 import pyrebase
 
-target_directory = "../sample_meme_files"
 image_extensions = ['jpg']
-
 
 configFile = open('firebase-config.json', 'r+')
 config = json.load(configFile)
@@ -16,7 +15,6 @@ config = json.load(configFile)
 firebase = pyrebase.initialize_app(config)
 
 db = firebase.database()
-# memesRef = db.child("memes")
 
 storage = firebase.storage()
 
@@ -67,6 +65,22 @@ def upload_meme(path):
     pushRef = db.child("memes").child(splitFileName[0])
     pushRef.set(to_push)
 
+def upload_meme_json(json_data):
+    json_data.pop('$id', None)
+    json_data.pop('$priority', None)
+
+    to_push = json_data
+
+    # This Version Below Does Not Overwrite Duplicates
+
+    # pushRef = db.child("memes")
+    # pushRef.push(to_push)
+
+    # The Version Below Overwrites Duplicates
+
+    pushRef = db.child("memes").child(uuid.uuid1())
+    pushRef.set(to_push)
+
 def upload_memes_in_directory(dir_path):
     files = [f for f in listdir(dir_path) if isfile(join(dir_path, f))]
     directories = [f for f in listdir(dir_path) if not isfile(join(dir_path, f))]
@@ -81,6 +95,3 @@ def upload_memes_in_directory(dir_path):
         # if it's an image file
         if (extension_split[len(extension_split) - 1] == 'meme'):
             upload_meme(dir_path + "/" + file)
-
-# upload_memes_in_directory(target_directory)
-print(upload_image("../sample_meme_files/sample base files/cant_if_you_dont.png"))
