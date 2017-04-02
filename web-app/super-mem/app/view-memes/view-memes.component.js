@@ -38,6 +38,27 @@ angular.module('viewMemes').component('viewMemes', {
             // canvas.style += " height: " + canvas.height * 0.6 + "px;";
             superpanel.appendChild(canvas);
 
+
+            var keys = Object.keys(meme.objects);
+
+            if (keys.length > 0) {
+                var info_text_element = document.createElement("h4");
+                info_text_element.style.fontWeight = "bold";
+
+                var info_text = "Extracted Text Elements: ";
+                for (var j = 0; j < keys.length; j++) {
+                    var element = meme.objects[keys[j]];
+                    // drawElement(ctx, element);
+                    if (element.type === "text" && element.data !== "") {
+                        info_text += " \"" + element.data + "\"  "
+                    }
+                }
+            }
+
+            info_text_element.innerHTML = info_text;
+
+            superpanel.appendChild(info_text_element);
+
             var button = document.createElement("a");
             button.className = "btn btn-info";
             button.innerHTML = "Download .meme file";
